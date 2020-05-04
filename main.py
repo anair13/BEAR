@@ -10,7 +10,7 @@ import algos
 import TD3
 from logger import logger, setup_logger
 from logger import create_stats_ordered_dict
-import point_mass
+# import point_mass
 
 # Runs policy for X episodes and returns average reward
 def evaluate_policy(policy, eval_episodes=10):
@@ -71,12 +71,13 @@ def evaluate_policy_discounted(policy, eval_episodes=10):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--env_name", default="Hopper-v2")                          # OpenAI gym environment name
+	parser.add_argument("--env_name", default="HalfCheetah-v2")                          # OpenAI gym environment name
 	parser.add_argument("--seed", default=0, type=int)                                      # Sets Gym, PyTorch and Numpy seeds
 	parser.add_argument("--buffer_type", default="Robust")                          # Prepends name to filename.
 	parser.add_argument("--eval_freq", default=5e3, type=float)                     # How often (time steps) we evaluate
 	parser.add_argument("--max_timesteps", default=1e6, type=float)         # Max time steps to run environment for
-	parser.add_argument("--buffer_name", default=None, type=str)            # the path to the buffer file
+	parser.add_argument("--demo_data", default=None, type=str)            # the path to the buffer file
+	parser.add_argument("--off_policy_data", default=None, type=str)            # the path to the buffer file
 	parser.add_argument("--version", default='0', type=str)                 # Basically whether to do min(Q), max(Q), mean(Q) over multiple Q networks for policy updates
 	parser.add_argument("--lamda", default=0.5, type=float)                 # Unused parameter -- please ignore 
 	parser.add_argument("--threshold", default=0.05, type=float)            # Unused parameter -- please ignore
@@ -102,7 +103,7 @@ if __name__ == "__main__":
 	
 	file_name = algo_name + "_%s_%s_%s_%s_%s_%s_%s_%s_%s_%s_%s_%s_%s_%s_0.1" % (args.env_name, str(seed), str(args.version), str(args.lamda), str(args.threshold), str(args.use_bootstrap), str(args.mode),\
 		 str(args.kernel_type), str(args.num_samples_match), str(args.mmd_sigma), str(args.lagrange_thresh), str(args.distance_type), str(args.use_behaviour_policy), str(args.num_random))
-	buffer_name = args.buffer_name
+	demo_data = args.demo_data
 	print ("---------------------------------------")
 	print ("Settings: " + file_name)
 	print ("---------------------------------------")
@@ -188,7 +189,9 @@ if __name__ == "__main__":
 	if args.env_name == 'Multigoal-v0':
 		replay_buffer.load_point_mass(buffer_name, bootstrap_dim=4, dist_cost_coeff=0.01)
 	else:
-		replay_buffer.load(buffer_name, bootstrap_dim=4)
+		replay_buffer.load(demo_data, bootstrap_dim=4)
+		if args.off_policy_data:
+			replay_buffer.load(args.off_policy_data, bootstrap_dim=4)
 	
 	evaluations = []
 
