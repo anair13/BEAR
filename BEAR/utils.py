@@ -61,20 +61,37 @@ class ReplayBuffer(object):
     def save(self, filename):
         np.save("./buffers/" + filename + ".npy", self.storage)
 
-    def load(self, filename, bootstrap_dim=None):
+    def load(self, filename, bootstrap_dim=None, obs_dict=False, trajs=False):
         # with gzip.open(filename, 'rb') as f:
         # 		self.storage = pickle.load(f)
         # with open(filename, 'rb') as f:
         #        self.storage = pickle.load(f)
+        storage = np.load(filename, allow_pickle=True)
+        self.load_data(storage, bootstrap_dim, obs_dict, trajs)
 
-        storage = np.load(filename, allow_pickle=True)[0]
+    def load_data(self, storage, bootstrap_dim=None, obs_dict=False, trajs=False,
+            is_demo=False, train_split=1,
+        ):
         if not self.added_to_storage:
             self.storage = dict()
-        for key in storage.keys():
-            if self.added_to_storage:
-                self.storage[key] = np.concatenate((self.storage[key],np.array(storage[key])), axis=0)
+        keys = storage[0].keys() if trajs else storage.keys()
+        for key in keys:
+            if trajs:
+                transitions = []
+                for path in storage:
+                    for t in range(len(path[key])):
+                        item = path[key][t]
+                        if obs_dict and key in ["observations", "next_observations"]:
+                            item = item["observation"]
+                        transitions.append(item)
+                transitions = np.array(transitions).squeeze()
             else:
-                self.storage[key] = np.array(storage[key])
+                transitions = np.array(storage[key])
+
+            if key in self.storage:
+                self.storage[key] = np.concatenate((self.storage[key],transitions), axis=0)
+            else:
+                self.storage[key] = np.array(transitions)
         sum_returns = np.array(self.storage['rewards']).sum()
         num_traj = np.array(self.storage['terminals']).sum()
         if num_traj == 0:
